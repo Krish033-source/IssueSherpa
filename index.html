@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IssueSherpa - find an issue, get a route to fix it</title>
+<meta name="description" content="AI guide for first-time open-source contributors. Finds beginner-friendly GitHub issues and writes a step-by-step plan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F6F8; --surface:#FFFFFF; --ink:#16252F; --muted:#5B6E7A; --line:#D5E0E6;
+  --glacier:#2B7BA6; --glacier-ink:#FFFFFF; --pine:#1D6B57; --flag:#D9A21B; --danger:#B3402F;
+  --easy:#1D6B57; --med:#9A6A0C; --hard:#B3402F; --code:#E8EFF3; --focus:#2B7BA6;
+  --display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'Instrument Sans','Segoe UI',system-ui,sans-serif;
+  color-scheme:light;
+}
+html[data-theme="dark"]{
+  --bg:#0D1A22; --surface:#13242E; --ink:#E4EDF1; --muted:#8CA3B0; --line:#25404E;
+  --glacier:#5BB0DD; --glacier-ink:#06202E; --pine:#4FB89C; --flag:#E9BD4A; --danger:#E5806F;
+  --easy:#4FB89C; --med:#E9BD4A; --hard:#E5806F; --code:#0A141A; --focus:#5BB0DD;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.2}
+a{color:var(--glacier)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1320px;margin:0 auto;padding:18px 24px 8px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:38px;height:38px;flex:none}
+.brand h1{font-size:24px;font-weight:700;letter-spacing:-.01em}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+.top-right{display:flex;align-items:center;gap:10px}
+.model{font-size:12.5px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 11px;background:var(--surface)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:36px;height:36px;cursor:pointer}
+.icon-btn:hover{border-color:var(--glacier)}
+.banner{max-width:1320px;margin:8px auto 0;padding:10px 24px;color:var(--danger);font-weight:500}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:28px;max-width:1320px;margin:0 auto;padding:12px 24px 48px;align-items:start}
+.right{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .right{position:static;max-height:none}
+}
+
+/* ---------- search ---------- */
+.search{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:16px}
+.search h2{font-size:18px;margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;flex:1 1 140px;min-width:0}
+.field label{font-size:13px;color:var(--muted)}
+input[type=text],select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:9px 10px}
+input[type=text]:focus,select:focus{border-color:var(--glacier)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--glacier)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--glacier);border-color:var(--glacier);color:var(--glacier-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:6px 10px;font-size:13.5px}
+.search-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}
+.hint{font-size:13px;color:var(--muted)}
+kbd{font-family:inherit;border:1px solid var(--line);border-radius:5px;padding:0 5px;background:var(--bg)}
+.divider{margin:16px 0 10px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:10px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.urlrow{display:flex;gap:10px}
+.urlrow input{flex:1}
+
+/* ---------- results ---------- */
+.results{margin-top:18px;display:flex;flex-direction:column}
+.results-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.results-head h2{font-size:17px}
+.issue{position:relative;padding:16px 8px 16px 18px;border-top:1px solid var(--line)}
+.issue::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:4px;border-radius:2px;background:var(--line)}
+.issue.Easy::before{background:var(--easy)}
+.issue.Medium::before{background:var(--med)}
+.issue.Hard::before{background:var(--hard)}
+.issue-repo{font-size:13px;color:var(--muted)}
+.issue-title{margin:2px 0 4px;font-family:var(--display);font-size:17px;font-weight:500;line-height:1.3}
+.issue-title a{color:inherit;text-decoration:none}
+.issue-title a:hover{text-decoration:underline}
+.issue-why{margin:0 0 10px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{font-size:12.5px;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--bg);color:var(--muted)}
+.chip.diff{font-weight:600}
+.chip.diff.Easy{color:var(--easy)} .chip.diff.Medium{color:var(--med)} .chip.diff.Hard{color:var(--hard)}
+.issue-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}
+.score{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.score-bar{width:64px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.score-bar i{display:block;height:100%;background:var(--flag)}
+.star{background:none;border:1px solid var(--line);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:16px;line-height:1;color:var(--muted)}
+.star[aria-pressed="true"]{color:var(--flag);border-color:var(--flag)}
+.empty-note{padding:28px 8px;color:var(--muted);border-top:1px solid var(--line)}
+.skeleton{height:92px;margin:10px 0;border-radius:8px;background:linear-gradient(90deg,var(--line),var(--surface),var(--line));background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* ---------- right panel ---------- */
+.tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:3}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:500}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--glacier)}
+.pane{padding:0}
+.pane-body{padding:16px 20px 22px}
+.empty{padding:40px 28px;text-align:center;color:var(--muted)}
+.empty svg{width:190px;max-width:70%;color:var(--line);margin-bottom:10px}
+.empty h2{color:var(--ink);font-size:20px;margin-bottom:6px}
+.empty p{max-width:380px;margin:0 auto}
+
+.plan-head{position:relative;padding:18px 20px 14px;border-bottom:1px solid var(--line);overflow:hidden}
+.contours{position:absolute;right:-20px;top:-30px;width:300px;height:160px;color:var(--line);pointer-events:none}
+.plan-head>*{position:relative}
+.plan-head h2{font-size:20px;margin:4px 0 8px;max-width:92%}
+.plan-head .repo{font-size:13px;color:var(--muted)}
+
+.trail{margin:14px 20px 0;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--bg)}
+.trail summary{cursor:pointer;font-weight:500}
+.steps{list-style:none;margin:12px 0 4px 6px;padding:0}
+.steps li{position:relative;padding:0 0 14px 26px;color:var(--muted)}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{content:"";position:absolute;left:5px;top:16px;bottom:-2px;width:2px;background:var(--line)}
+.steps li:last-child::before{display:none}
+.steps li::after{content:"";position:absolute;left:0;top:4px;width:12px;height:12px;border-radius:50%;border:2px solid var(--line);background:var(--surface)}
+.steps li.running{color:var(--ink);font-weight:500}
+.steps li.running::after{border-color:var(--glacier);border-top-color:transparent;animation:spin .8s linear infinite}
+.steps li.done{color:var(--ink)}
+.steps li.done::after{background:var(--pine);border-color:var(--pine)}
+.steps li.error{color:var(--danger)}
+.steps li.error::after{background:var(--danger);border-color:var(--danger)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.facts{display:flex;flex-wrap:wrap;gap:6px 18px;padding:14px 20px 0;font-size:14px}
+.facts dt{display:inline;color:var(--muted)}
+.facts dd{display:inline;margin:0 0 0 6px;font-weight:600}
+.facts div{display:block}
+.summary{padding:6px 20px 0;color:var(--muted);margin:0}
+.files{display:flex;flex-wrap:wrap;gap:6px;padding:12px 20px 0}
+.files a{font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--code);text-decoration:none;color:var(--ink)}
+.files a:hover{border-color:var(--glacier)}
+
+.prose{padding:8px 20px 4px;overflow-wrap:anywhere}
+.prose h2{font-size:18px;margin:20px 0 6px}
+.prose h3{font-size:16px;margin:16px 0 4px}
+.prose p,.prose li{max-width:72ch}
+.prose code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.92em}
+.prose pre{background:var(--code);padding:12px;border-radius:8px;overflow:auto}
+.prose pre code{padding:0;background:none}
+.prose table{border-collapse:collapse;display:block;overflow:auto}
+.prose th,.prose td{border:1px solid var(--line);padding:5px 9px}
+.prose.streaming>:last-child::after{content:"";display:inline-block;width:7px;height:1em;margin-left:3px;vertical-align:-2px;background:var(--glacier);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px;padding:6px 20px 0}
+.draft{margin:14px 20px 0;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.draft-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.draft pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:inherit}
+
+.ask{margin:20px 20px 22px;border-top:1px solid var(--line);padding-top:14px}
+.ask h3{font-size:16px;margin-bottom:8px}
+.log{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.bubble{padding:8px 12px;border-radius:10px;max-width:92%;overflow-wrap:anywhere}
+.bubble.me{align-self:flex-end;background:var(--glacier);color:var(--glacier-ink)}
+.bubble.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+.bubble.bot p{margin:0 0 6px}
+.bubble.bot p:last-child{margin:0}
+.askrow{display:flex;gap:8px}
+.askrow input{flex:1}
+
+.list-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.list-item:first-child{border-top:0}
+.list-item b{font-family:var(--display);font-weight:500;display:block;line-height:1.3}
+.list-item span{font-size:13px;color:var(--muted)}
+
+.toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:50;align-items:center}
+.toast{background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-weight:500;max-width:min(520px,92vw)}
+.toast.err{background:var(--danger);color:#fff}
+
+footer{max-width:1320px;margin:0 auto;padding:0 24px 28px;color:var(--muted);font-size:13px}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <rect width="40" height="40" rx="9" fill="var(--glacier)"/>
+      <path d="M5 31 L16 13 L21 21 L25 15 L35 31 Z" fill="var(--glacier-ink)"/>
+      <path d="M16 13 L13.2 17.6 L16 16.4 L18 17.8 Z" fill="var(--flag)"/>
+    </svg>
+    <div>
+      <h1>IssueSherpa</h1>
+      <p>Find a beginner-friendly issue. Get a route to fix it.</p>
+    </div>
+  </div>
+  <div class="top-right">
+    <span class="model" id="modelBadge">Loading model...</span>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch between light and dark theme" title="Switch theme">&#9680;</button>
+  </div>
+</header>
+<div class="banner" id="banner" hidden></div>
+
+<div class="layout">
+  <!-- LEFT: find issues -->
+  <section class="left" aria-label="Find issues">
+    <div class="search">
+      <h2>Find an issue</h2>
+      <form id="searchForm">
+        <div class="row">
+          <div class="field">
+            <label for="lang">Language</label>
+            <select id="lang">
+              <option>python</option><option>javascript</option><option>typescript</option><option>go</option>
+              <option>rust</option><option>java</option><option>c++</option><option>c#</option>
+              <option>php</option><option>ruby</option><option>kotlin</option><option>swift</option><option value="any">any language</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="label">Label</label>
+            <select id="label">
+              <option>good first issue</option><option>help wanted</option><option>documentation</option>
+              <option>bug</option><option>enhancement</option><option value="">any label</option>
+            </select>
+          </div>
+          <div class="field" style="flex-basis:200px">
+            <label for="kw">Keyword (optional)</label>
+            <input type="text" id="kw" placeholder="cli, api, docs..." autocomplete="off">
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="hf" checked> Only issues labeled hacktoberfest</label>
+        <div class="search-actions">
+          <span class="hint">Press <kbd>/</kbd> to jump to keyword</span>
+          <button class="btn primary" type="submit">Search issues</button>
+        </div>
+      </form>
+      <div class="divider">or paste an issue link</div>
+      <form id="urlForm" class="urlrow">
+        <input type="text" id="urlInput" placeholder="https://github.com/owner/repo/issues/123" aria-label="GitHub issue URL" autocomplete="off">
+        <button class="btn primary" type="submit">Plan this issue</button>
+      </form>
+    </div>
+
+    <div class="results" id="results" aria-live="polite"></div>
+  </section>
+
+  <!-- RIGHT: plan, saved, recent -->
+  <aside class="right" aria-label="Plan and history">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="plan" aria-selected="true">Route</button>
+      <button class="tab" role="tab" data-tab="saved" aria-selected="false">Saved <span id="savedCount"></span></button>
+      <button class="tab" role="tab" data-tab="recent" aria-selected="false">Recent</button>
+    </div>
+
+    <!-- Plan -->
+    <div class="pane" id="pane-plan" role="tabpanel">
+      <div class="empty" id="planEmpty">
+        <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M4 100 L60 24 L88 62 L114 34 L196 100 Z" stroke-linejoin="round"/>
+          <path d="M60 24 L46 44 L60 38 L72 46 Z" fill="var(--flag)" stroke="none"/>
+          <path d="M20 92 Q70 70 110 84 T186 92" stroke-dasharray="4 5"/>
+        </svg>
+        <h2>Pick an issue to see your route</h2>
+        <p>Sherpa reads the issue, scans the repo, opens the right files and writes a plan you can follow, step by step.</p>
+      </div>
+
+      <div id="planView" hidden>
+        <div class="plan-head" id="planHead">
+          <svg class="contours" viewBox="0 0 300 160" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <path d="M20 120 C60 40 140 30 200 60 S290 120 270 150"/>
+            <path d="M50 124 C80 66 140 56 190 78 S262 120 250 146"/>
+            <path d="M80 128 C100 92 142 82 180 96 S234 122 228 142"/>
+            <path d="M110 132 C122 114 146 108 168 114 S200 128 204 138"/>
+          </svg>
+          <div class="repo" id="planRepo"></div>
+          <h2 id="planTitle"></h2>
+          <div class="chips" id="planChips"></div>
+        </div>
+
+        <details class="trail" id="trail" open>
+          <summary id="trailSummary">Sherpa is working</summary>
+          <ol class="steps" id="steps">
+            <li data-step="fetch">Reading the issue and repo</li>
+            <li data-step="think">Analyzing the issue and choosing files</li>
+            <li data-step="read">Reading the chosen files</li>
+            <li data-step="write">Writing your route</li>
+          </ol>
+        </details>
+
+        <div id="analysis" hidden>
+          <dl class="facts" id="facts"></dl>
+          <p class="summary" id="summary"></p>
+        </div>
+        <div class="files" id="files"></div>
+
+        <div class="prose" id="planOut"></div>
+
+        <div class="actions" id="actions">
+          <button class="btn small" data-action="copy" disabled>Copy plan</button>
+          <button class="btn small" data-action="download" disabled>Download .md</button>
+          <button class="btn small" data-action="regen" disabled>Regenerate</button>
+          <button class="btn small" data-action="draft:claim" disabled>Draft claim comment</button>
+          <button class="btn small" data-action="draft:pr" disabled>Draft PR description</button>
+          <button class="btn small" data-action="draft:commit" disabled>Draft commit message</button>
+        </div>
+
+        <div class="draft" id="draftBox" hidden>
+          <div class="draft-head"><b id="draftTitle"></b><button class="btn small" id="draftCopy" type="button">Copy</button></div>
+          <pre id="draftOut"></pre>
+        </div>
+
+        <div class="ask" id="askBox" hidden>
+          <h3>Ask Sherpa about this issue</h3>
+          <div class="log" id="askLog"></div>
+          <form class="askrow" id="askForm">
+            <input type="text" id="askInput" placeholder="Where do I start? How do I run the tests?" aria-label="Question for Sherpa" autocomplete="off">
+            <button class="btn primary" type="submit" id="askBtn">Ask</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved -->
+    <div class="pane" id="pane-saved" role="tabpanel" hidden>
+      <div class="pane-body" id="savedList"></div>
+    </div>
+
+    <!-- Recent -->
+    <div class="pane" id="pane-recent" role="tabpanel" hidden>
+      <div class="pane-body" id="recentList"></div>
+    </div>
+  </aside>
+</div>
+
+<footer id="foot">Plans are guidance, not verified code. Read, test and understand every change before you open a pull request.</footer>
+<div class="toasts" id="toasts" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="/script.js"></script>
+</body>
+</html>
