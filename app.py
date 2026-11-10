@@ -25,7 +25,7 @@ from langchain_core.runnables import RunnableLambda, RunnableParallel
 from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
 
-try:  # local development: read variables from a .env file if python-dotenv is installed
+try:  
     from dotenv import load_dotenv
 
     load_dotenv()
@@ -144,7 +144,7 @@ def make_llm(max_tokens=2000, temperature=0.2):
         raise RuntimeError("GROQ_API_KEY is not set on the server.")
     extra = {}
     if REASONING in ("low", "medium", "high"):
-        extra["model_kwargs"] = {"reasoning_effort": REASONING}
+        extra["reasoning_effort"] = REASONING
     return ChatGroq(model=MODEL, temperature=temperature, max_tokens=max_tokens,
                     timeout=90, max_retries=2, **extra)
 
