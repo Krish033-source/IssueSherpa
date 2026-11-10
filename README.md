@@ -1,7 +1,6 @@
 # IssueSherpa
 
 An AI guide for first-time open-source contributors. Find a beginner-friendly GitHub issue, then get a step-by-step route to fix it.
-Built for the MLH x DigitalOcean Hacktoberfest 2026 challenge.
 
 ## What it does
 - Searches open `good first issue` / `hacktoberfest` issues and ranks them for beginner fit (score, difficulty, time estimate).
