@@ -2,6 +2,8 @@
 
 An AI guide for first-time open-source contributors. Find a beginner-friendly GitHub issue, then get a step-by-step route to fix it.
 
+Try it LIVE: https://issuesherpa-ce103.containers.snapdeploy.app/
+
 ## What it does
 - Searches open `good first issue` / `hacktoberfest` issues and ranks them for beginner fit (score, difficulty, time estimate).
 - Builds a plan for any issue: analyzes it, picks the right repo files, reads them, and streams a Markdown plan live.
